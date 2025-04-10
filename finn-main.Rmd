@@ -1,0 +1,15 @@
+---
+title: "Midterm 3"
+author: "Finn, Delaney, and Jafar"
+date: "2025-04-10"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(DBI)
+library(odbc)
+library(RMySQL)
+library(tidyverse)
+library(dbplyr)
+```
