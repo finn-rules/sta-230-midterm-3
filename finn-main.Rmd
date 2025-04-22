@@ -13,3 +13,17 @@ library(RMySQL)
 library(tidyverse)
 library(dbplyr)
 ```
+```{r}
+colnames(data)[colnames(data) == "Have.you.ever.had.suicidal.thoughts.."] = 
+  "SuicidalThoughts"
+colnames(data)[colnames(data) == "Academic.Pressure"] = "AcademicPressure"
+colnames(data)[colnames(data) == "Work.Pressure"] = "WorkPressure"
+colnames(data)[colnames(data) == "Study.Satisfaction"] = "StudySatisfaction"
+colnames(data)[colnames(data) == "Job.Satisfaction"] = "JobSatisfaction"
+colnames(data)[colnames(data) == "Sleep.Duration"] = "SleepDuration"
+colnames(data)[colnames(data) == "Dietary.Habits"] = "DietaryHabits"
+colnames(data)[colnames(data) == "Work.Study.Hours"] = "WorkStudyHours"
+colnames(data)[colnames(data) == "Financial.Stress"] = "FinancialStress"
+colnames(data)[colnames(data) == "Family.History.of.Mental.Illness"] = 
+  "FamilyHistoryOfMentalIllness"
+```
