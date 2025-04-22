@@ -1,23 +1,25 @@
----
-title: 'Midterm #3'
-author: "Delaney Nguyen"
-date: "2025-04-10"
-output: html_document
----
-
-```{r message=FALSE, warning=FALSE}
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 library(DBI)
 library(odbc)
 library(RMySQL)
 library(tidyverse)
 ```
 
-```{r}
+```{r echo=FALSE}
 data = read.csv("C:/Users/Thieu Le/Downloads/student_depression_dataset.csv")
-colnames(data)[colnames(data) == "Have.you.ever.had.suicidal.thoughts.."] = "Suicidal.Thoughts"
+colnames(data)[colnames(data) == "Have.you.ever.had.suicidal.thoughts.."] = "SuicidalThoughts"
+colnames(data)[colnames(data) == "Academic.Pressure"] = "AcademicPressure"
+colnames(data)[colnames(data) == "Study.Satisfaction"] = "StudySatisfaction"
+colnames(data)[colnames(data) == "Job.Satisfaction"] = "JobSatisfaction"
+colnames(data)[colnames(data) == "Sleep.Duration"] = "SleepDuration"
+colnames(data)[colnames(data) == "Dietary.Habits"] = "DietaryHabits"
+colnames(data)[colnames(data) == "Work.Study.Hours"] = "WorkStudyHours"
+colnames(data)[colnames(data) == "Financial.Stress"] = "FinancialStress"
+colnames(data)[colnames(data) == "Family.History.of.Mental.Illness"] = "FamilyHistoryofMentalIllness"
+colnames(data)[colnames(data) == "Work.Pressure"] = "WorkPressure"
 ```
 
-```{r}
+```{r echo=FALSE}
 midterm3 = dbConnect(RSQLite::SQLite(), ":memory:")
 # Write big dataset into SQL
 dbWriteTable(midterm3, "data", data)
@@ -28,7 +30,6 @@ dbWriteTable(midterm3, "data", data)
 dbExecute(midterm3, "DELETE FROM data WHERE id = 35309")
 #I decided to remove this observation because the value in the City column is listed as 3.0, which is not a valid city name and appears to be a data entry error. Given that our dataset contains over 27,000 observations, removing this single flaw entry is unlikely to impact the overall representativeness or integrity of the dataset.
 ```
-
 ```{r message=FALSE}
 #Create Table in database
 dbExecute(midterm3, "CREATE TABLE 'demographics' (
@@ -43,54 +44,55 @@ dbExecute(midterm3, "CREATE TABLE 'demographics' (
 dbExecute(midterm3, "CREATE TABLE 'academics' (
           'id' INTEGER PRIMARY KEY NOT NULL,
           'CGPA' REAL NOT NULL,
-          'Academic.Pressure' int(1) NOT NULL,
-          'Study.Satisfaction' int(1) NOT NULL, 
+          'AcademicPressure' int(1) NOT NULL,
+          'StudySatisfaction' int(1) NOT NULL, 
           'Degree' REAL NOT NULL,
           'Depression' int(1) NOT NULL)")
 dbExecute(midterm3, "CREATE TABLE 'lifestyle' (
           'id' INTEGER PRIMARY KEY NOT NULL,
-          'Sleep.Duration' REAL NOT NULL, 
-          'Dietary.Habits' varchar(9) NOT NULL, 
-          'Work.Pressure' int(1) NOT NULL,
-          'Job.Satisfaction' int(1) NOT NULL,
-          'Work.Study.Hours' int(1) NOT NULL,
+          'SleepDuration' REAL NOT NULL, 
+          'DietaryHabits' varchar(9) NOT NULL, 
+          'WorkPressure' int(1) NOT NULL,
+          'JobSatisfaction' int(1) NOT NULL,
+          'WorkStudyHours' int(1) NOT NULL,
           'Depression' int(1) NOT NULL)")
 dbExecute(midterm3, "CREATE TABLE 'externalfactors'(
           'id' INTEGER PRIMARY KEY NOT NULL,
-          'Suicidal.Thoughts' varchar(3) NOT NULL,
-          'Family.History.of.Mental.Illness' varchar(3) NOT NULL,
-          'Financial.Stress' REAL NOT NULL, 
+          'SuicidalThoughts' varchar(3) NOT NULL,
+          'FamilyHistoryofMentalIllness' varchar(3) NOT NULL,
+          'FinancialStress' REAL NOT NULL, 
           'Depression' int(1) NOT NULL)")
 dbExecute(midterm3, "CREATE TABLE 'degreediet'(
           'Degree' REAL NOT NULL,
-          'Dietary.Habits' varchar(9) NOT NULL)")
+          'DietaryHabits' varchar(9) NOT NULL)")
 ```
-
-```{r}
-dbListTables(midterm3)
-```
-
 ```{r}
 #Filling Tables with values from big dataset
 dbExecute(midterm3, "INSERT INTO demographics (id, Gender, Age, City, Degree, Profession, Depression)
   SELECT id, Gender, Age, City, Degree, Profession, Depression
   FROM data")
 
-dbExecute(midterm3, "INSERT INTO academics (id, CGPA, 'Academic.Pressure', 'Study.Satisfaction', Degree, Depression)
-          SELECT id, CGPA, 'Academic.Pressure', 'Study.Satisfaction', Degree, Depression
+dbExecute(midterm3, "INSERT INTO academics (id, CGPA, AcademicPressure, StudySatisfaction, Degree, Depression)
+          SELECT id, CGPA, AcademicPressure, StudySatisfaction, Degree, Depression
           FROM data")
 
-dbExecute(midterm3, "INSERT INTO lifestyle (id, 'Sleep.Duration', 'Dietary.Habits', 'Work.Pressure', 'Job.Satisfaction', 'Work.Study.Hours', Depression)
-          SELECT id, 'Sleep.Duration', 'Dietary.Habits', 'Work.Pressure', 'Job.Satisfaction', 'Work.Study.Hours', Depression
+dbExecute(midterm3, "INSERT INTO lifestyle (id, SleepDuration, DietaryHabits, WorkPressure, JobSatisfaction, WorkStudyHours, Depression)
+          SELECT id, SleepDuration, DietaryHabits, WorkPressure, JobSatisfaction, WorkStudyHours, Depression
           FROM data")
 
-dbExecute(midterm3, "INSERT INTO externalfactors (id, 'Suicidal.Thoughts', 'Family.History.of.Mental.Illness', 'Financial.Stress', Depression)
-          SELECT id, 'Suicidal.Thoughts', 'Family.History.of.Mental.Illness', 'Financial.Stress', Depression
+dbExecute(midterm3, "INSERT INTO externalfactors (id, SuicidalThoughts, FamilyHistoryofMentalIllness, FinancialStress, Depression)
+          SELECT id, SuicidalThoughts, FamilyHistoryofMentalIllness, FinancialStress, Depression
           FROM data")
 
-dbExecute(midterm3, "INSERT INTO degreediet (Degree, 'Dietary.Habits')
-          SELECT Degree, 'Dietary.Habits'
+dbExecute(midterm3, "INSERT INTO degreediet (Degree, DietaryHabits)
+          SELECT Degree, DietaryHabits
           FROM data")
 ```
-
-
+```{r}
+#Drop table 
+dbExecute(midterm3, 
+          "DROP TABLE degreediet")
+```
+```{r}
+dbListTables(midterm3)
+```
