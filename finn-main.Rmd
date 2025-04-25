@@ -2,7 +2,7 @@
 title: "Midterm 3"
 author: "Finn, Delaney, and Jafar"
 date: "2025-04-10"
-output: html_document
+output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
@@ -11,8 +11,16 @@ library(DBI)
 library(odbc)
 library(RMySQL)
 library(tidyverse)
+library(ggplot2)
+library(dplyr)
 library(dbplyr)
+library(tidyr)
 ```
+
+```{r}
+data <- read.csv("/Users/finnrowles/Documents/2025SpringSTA230/student_depression_dataset.csv")
+```
+
 ```{r}
 colnames(data)[colnames(data) == "Have.you.ever.had.suicidal.thoughts.."] = 
   "SuicidalThoughts"
@@ -26,4 +34,158 @@ colnames(data)[colnames(data) == "Work.Study.Hours"] = "WorkStudyHours"
 colnames(data)[colnames(data) == "Financial.Stress"] = "FinancialStress"
 colnames(data)[colnames(data) == "Family.History.of.Mental.Illness"] = 
   "FamilyHistoryOfMentalIllness"
+```
+
+```{r}
+midterm3 = dbConnect(RSQLite::SQLite(), ":memory:")
+# Write big dataset into SQL
+dbWriteTable(midterm3, "data", data)
+```
+
+```{r message=FALSE, warning=FALSE}
+# Delete an observation/row
+dbExecute(midterm3, "DELETE FROM data WHERE id = 35309")
+# I decided to remove this observation because the value in the City column is listed as 3.0, which is not a valid city name and appears to be a data entry error. Given that our dataset contains over 27,000 observations, removing this single flaw entry is unlikely to impact the overall representativeness or integrity of the dataset.
+```
+
+```{r message=FALSE}
+#Create Table in database
+dbExecute(midterm3, "CREATE TABLE 'demographics' (
+          'id' INTEGER PRIMARY KEY NOT NULL,
+          'Gender' varchar(6) NOT NULL,
+          'Age' int(2) NOT NULL,
+          'City' REAL NOT NULL, 
+          'Degree' REAL NOT NULL,
+          'Profession' REAL NOT NULL,
+          'Depression' int(1) NOT NULL)
+          ")
+dbExecute(midterm3, "CREATE TABLE 'academics' (
+          'id' INTEGER PRIMARY KEY NOT NULL,
+          'CGPA' REAL NOT NULL,
+          'AcademicPressure' int(1) NOT NULL,
+          'StudySatisfaction' int(1) NOT NULL, 
+          'Degree' REAL NOT NULL,
+          'Depression' int(1) NOT NULL)")
+dbExecute(midterm3, "CREATE TABLE 'lifestyle' (
+          'id' INTEGER PRIMARY KEY NOT NULL,
+          'SleepDuration' REAL NOT NULL, 
+          'DietaryHabits' varchar(9) NOT NULL, 
+          'WorkPressure' int(1) NOT NULL,
+          'JobSatisfaction' int(1) NOT NULL,
+          'WorkStudyHours' int(1) NOT NULL,
+          'Depression' int(1) NOT NULL)")
+dbExecute(midterm3, "CREATE TABLE 'externalfactors'(
+          'id' INTEGER PRIMARY KEY NOT NULL,
+          'SuicidalThoughts' varchar(3) NOT NULL,
+          'FamilyHistoryOfMentalIllness' varchar(3) NOT NULL,
+          'FinancialStress' REAL NOT NULL, 
+          'Depression' int(1) NOT NULL)")
+dbExecute(midterm3, "CREATE TABLE 'degreeDiet'(
+          'Degree' REAL NOT NULL,
+          'DietaryHabits' varchar(9) NOT NULL)")
+```
+
+```{r}
+dbListTables(midterm3)
+```
+
+```{r}
+#Filling Tables with values from big dataset
+dbExecute(midterm3, "INSERT INTO demographics (id, Gender, Age, City, Degree, Profession, Depression)
+  SELECT id, Gender, Age, City, Degree, Profession, Depression
+  FROM data")
+
+dbExecute(midterm3, "INSERT INTO academics (id, CGPA, 'AcademicPressure', 'StudySatisfaction', Degree, Depression)
+          SELECT id, CGPA, AcademicPressure, StudySatisfaction, Degree, Depression
+          FROM data")
+
+dbExecute(midterm3, "INSERT INTO lifestyle (id, 'SleepDuration', 'DietaryHabits', 'WorkPressure', 'JobSatisfaction', 'WorkStudyHours', Depression)
+          SELECT id, SleepDuration, DietaryHabits, WorkPressure, JobSatisfaction, WorkStudyHours, Depression
+          FROM data")
+
+dbExecute(midterm3, "INSERT INTO externalfactors (id, 'SuicidalThoughts', 'FamilyHistoryOfMentalIllness', 'FinancialStress', Depression)
+          SELECT id, SuicidalThoughts, FamilyHistoryOfMentalIllness, FinancialStress, Depression
+          FROM data")
+
+dbExecute(midterm3, "INSERT INTO degreeDiet (Degree, 'DietaryHabits')
+          SELECT Degree, DietaryHabits
+          FROM data")
+```
+```{r}
+dbGetQuery(midterm3, "SELECT * FROM degreeDiet")
+
+dbRemoveTable(midterm3, "degreeDiet")
+dbRemoveTable(midterm3, "data")
+
+# When this is run, we get a "no such table" error
+# dbGetQuery(midterm3, "SELECT * FROM degreeDiet")
+```
+
+```{r}
+# Use SQL commands in the function : write 
+# Take a new row of original data and populate all tables needed.
+
+# Example of a new student data frame.
+new_student <- as.data.frame(
+  list(id = 1, Gender = "Male", Age = 27, City = "Mysore", 
+                    Profession = "Student", AcademicPressure = 5, 
+                    WorkPressure = 0, 
+                    CGPA = 8.52, StudySatisfaction = 4, 
+                    JobSatisfaction = 0, 
+                    SleepDuration = '5-6 hours', DietaryHabits = "Healthy",
+                    Degree = "BSc", SuicidalThoughts = "No",
+                    WorkStudyHours = 4, FinancialStress = 3.0,
+                    FamilyHistoryOfMentalIllness = "Yes", Depression = 0))
+
+# Function to insert a row into the new data frame,
+# as well as insert it into the 4 respective tables.
+
+# Parameters: row_info : represents a new row - a data frame with one row and
+# 18 columns aligned with variables in the data set
+insert_row <- function(row_info) {
+
+#   Create 4 data frames using select representing observations in their
+  # respective tables.
+demographic_info <- select(row_info, 
+                              id, Gender, Age, City, Degree, 
+                              Profession, Depression)
+academics_info <- select(row_info, 
+                              id, CGPA, AcademicPressure, StudySatisfaction,
+                         Degree, Depression)
+
+lifestyle_info <- select(row_info, 
+                         id, SleepDuration, DietaryHabits, WorkPressure, 
+                         JobSatisfaction, WorkStudyHours, Depression)
+
+external_info <- select(row_info, 
+                        id, SuicidalThoughts, FamilyHistoryOfMentalIllness,
+                        FinancialStress, Depression)
+
+# Write onto each of the tables in the midterm3 connection
+# from the sub-data frames representing a new observation.
+dbWriteTable(conn = midterm3, name = 'demographics', value = demographic_info,
+             append = TRUE,
+            header = FALSE, row.names = FALSE)
+dbWriteTable(conn = midterm3, name = 'academics', value = academics_info,
+             append = TRUE,
+            header = FALSE, row.names = FALSE)
+dbWriteTable(conn = midterm3, name = 'lifestyle', value = lifestyle_info,
+             append = TRUE,
+            header = FALSE, row.names = FALSE)
+dbWriteTable(conn = midterm3, name = 'externalfactors', value = external_info, 
+             append = TRUE,
+            header = FALSE, row.names = FALSE)
+}
+
+# Display that our function works.
+insert_row(as.data.frame(new_student))
+
+# Confirm that the added student has been added to a subtable and the main table.
+new_obs_academics <- dbGetQuery(midterm3, "SELECT * FROM academics") %>% 
+  filter(id == 1)
+print(new_obs_academics)
+```
+
+```{r}
+## dbDisconnect(midterm3)
 ```
