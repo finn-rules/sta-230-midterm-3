@@ -1,0 +1,97 @@
+---
+title: 'Midterm #3 Redo'
+author: "Delaney Nguyen"
+date: "2025-04-26"
+output: html_document
+---
+```{r}
+library(DBI)
+library(odbc)
+library(RMySQL)
+library(tidyverse)
+```
+
+```{r}
+train = read.csv("C:/Users/Thieu Le/Downloads/train.csv")
+colnames(train)[colnames(train) == "Row.ID"] = "RowID"
+colnames(train)[colnames(train) == "Order.ID"] = "OrderID"
+colnames(train)[colnames(train) == "Customer.ID"] = "CustomerID"
+colnames(train)[colnames(train) == "Order.Date"] = "OrderDate"
+colnames(train)[colnames(train) == "Ship.Date"] = "ShipDate"
+colnames(train)[colnames(train) == "Customer.Name"] = "CustomerName"
+colnames(train)[colnames(train) == "Sub.Category"] = "SubCategory"
+colnames(train)[colnames(train) == "Product.Name"] = "ProductName"
+colnames(train)[colnames(train) == "Ship.Mode"] = "ShipMode"
+colnames(train)[colnames(train) == "Postal.Code"] = "PostalCode"
+colnames(train)[colnames(train) == "Product.ID"] = "ProductID"
+```
+
+```{r}
+midterm3redo = dbConnect(RSQLite::SQLite(), ":memory:")
+dbWriteTable(midterm3redo, "train", train)
+```
+
+```{r}
+dbExecute(midterm3redo, "DELETE FROM train WHERE City == 'Aberdeen'")
+```
+```{r}
+dbExecute(midterm3redo, "CREATE TABLE 'shipping' (
+          'OrderID' REAL NOT NULL,
+          'OrderDate' REAL NOT NULL,
+          'ShipDate' REAL NOT NULL,
+          'ShipMode' varchar(13) NOT NULL, 
+          'CustomerID' REAL NOT NULL)
+          ")
+dbExecute(midterm3redo, "CREATE TABLE 'managing' (
+          'RowID' INTEGER PRIMARY KEY NOT NULL,
+          'CustomerID' REAL NOT NULL,
+          'OrderID' REAL NOT NULL,
+          'ProductID' REAL NOT NULL)
+          ")
+dbExecute(midterm3redo, "CREATE TABLE 'customer' (
+          'CustomerID' REAL NOT NULL,
+          'CustomerName' REAL NOT NULL,
+          'Country' REAL NOT NULL,
+          'City' REAL NOT NULL, 
+          'PostalCode' REAL NOT NULL,
+          'Segment' REAL NOT NULL)
+          ")
+dbExecute(midterm3redo, "CREATE TABLE 'region' (
+          'PostalCode' INTEGER PRIMARY KEY NOT NULL, 
+          'Region' varchar(7) NOT NULL)
+          ")
+dbExecute(midterm3redo, "CREATE TABLE 'product'(
+          'ProductID' REAL PRIMARY KEY NOT NULL, 
+          'Category' varchar(50) NOT NULL, 
+          'SubCategory' REAL NOT NULL, 
+          'ProductName' REAL NOT NULL, 
+          'Sales' REAL NOT NULL)
+          ")
+dbExecute(midterm3redo, "CREATE TABLE 'random'(
+          'ProductID' REAL NOT NULL, 
+          'CustomerName' REAL NOT NULL)
+          ")
+dbExecute(midterm3redo, "DROP TABLE random")
+```
+```{r}
+dbExecute(midterm3redo, "INSERT INTO shipping (OrderID, OrderDate, ShipDate, ShipMode, CustomerID)
+  SELECT OrderID, OrderDate, ShipDate, ShipMode, CustomerID
+  FROM train")
+dbExecute(midterm3redo, "INSERT INTO managing (RowID, CustomerID, OrderID, ProductID)
+  SELECT RowID, CustomerID, OrderID, ProductID
+  FROM train")
+dbExecute(midterm3redo, "INSERT INTO customer (CustomerID, CustomerName, Country, City, PostalCode, Segment)
+  SELECT CustomerID, CustomerName, Country, City, PostalCode, Segment
+  FROM train
+  GROUP BY CustomerID")
+dbExecute(midterm3redo, "INSERT INTO product (ProductID, Category, SubCategory, ProductName, Sales)
+  SELECT ProductID, Category, SubCategory, ProductName, Sales
+  FROM train
+  GROUP BY ProductID")
+dbExecute(midterm3redo, "INSERT INTO region (PostalCode, Region)
+          SELECT PostalCode, Region
+          FROM train
+          GROUP BY PostalCode")
+```
+
+
