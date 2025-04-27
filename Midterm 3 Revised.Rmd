@@ -1,0 +1,129 @@
+---
+title: "Midterm3Revised"
+author: "Jafar Jarrar"
+date: "2025-04-26"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(DBI)
+library(odbc)
+library(RMySQL)
+library(tidyverse)
+```
+
+```{r}
+train = read.csv("/Users/jafarjarrar/Documents/Grinnell-Sophomore-Year/Spring/Stats-230/Midterms/train.csv") 
+train <- train %>% na.omit() 
+colnames(train)[colnames(train) == "Row.ID"] = "RowID"
+colnames(train)[colnames(train) == "Order.ID"] = "OrderID"
+colnames(train)[colnames(train) == "Customer.ID"] = "CustomerID"
+colnames(train)[colnames(train) == "Order.Date"] = "OrderDate"
+colnames(train)[colnames(train) == "Ship.Date"] = "ShipDate"
+colnames(train)[colnames(train) == "Customer.Name"] = "CustomerName"
+colnames(train)[colnames(train) == "Sub.Category"] = "SubCategory"
+colnames(train)[colnames(train) == "Product.Name"] = "ProductName"
+colnames(train)[colnames(train) == "Ship.Mode"] = "ShipMode"
+colnames(train)[colnames(train) == "Postal.Code"] = "PostalCode"
+colnames(train)[colnames(train) == "Product.ID"] = "ProductID"
+
+midterm3 = dbConnect(RSQLite::SQLite(), ":memory:")
+
+dbWriteTable(midterm3, "train", train)
+
+# Making first table containing information about location
+
+dbExecute(midterm3, "CREATE TABLE location (
+          PostalCode INTEGER PRIMARY KEY NOT NULL,
+          City varchar(20) NOT NULL, 
+          State varchar(20) NOT NULL,
+          Region varchar(20) NOT NULL)")
+
+dbExecute(midterm3, "INSERT INTO location (PostalCode, City, State, Region)
+  SELECT PostalCode, City, State, Region
+  FROM train
+  GROUP BY PostalCode")
+
+# Making second table containing information about customer
+
+dbExecute(midterm3, "CREATE TABLE customerInfo (
+          CustomerID varchar(20) PRIMARY KEY NOT NULL, 
+          CustomerName varchar(20) NOT NULL, 
+          Segment varchar(20) NOT NULL)")
+
+dbExecute(midterm3, "INSERT INTO customerInfo (CustomerID, CustomerName, Segment)
+  SELECT CustomerID, CustomerName, Segment
+  FROM train
+  GROUP BY CustomerID")
+
+# Making third table containing information about shipping
+
+dbExecute(midterm3, "CREATE TABLE shippingInfo (
+          OrderID varchar(20) PRIMARY KEY NOT NULL, 
+          OrderDate varchar(20) NOT NULL, 
+          ShipDate varchar(20) NOT NULL, 
+          ShipMode varchar(20) NOT NULL)")
+
+dbExecute(midterm3, "INSERT INTO shippingInfo (OrderID, OrderDate, ShipDate, ShipMode)
+  SELECT OrderID, OrderDate, ShipDate, ShipMode
+  FROM train
+  GROUP BY OrderID")
+
+# Making fourth table containing information about product
+
+dbExecute(midterm3, "CREATE TABLE productInfo (
+          ProductID varchar(20) PRIMARY KEY NOT NULL,
+          Category varchar(20) NOT NULL, 
+          SubCategory varchar(20) NOT NULL,
+          ProductName varchar(128) NOT NULL)")
+          
+dbExecute(midterm3, "INSERT INTO productInfo (ProductID, Category, SubCategory, ProductName)
+  SELECT ProductID, Category, SubCategory, ProductName
+  FROM train
+  GROUP BY ProductID")
+
+# Making primary table containing foreign keys and sales info
+
+dbExecute(midterm3, "CREATE TABLE primaryTable (
+          RowID INTEGER PRIMARY KEY NOT NULL,
+          Sales REAL NOT NULL,
+          CustomerID varchar(20) NOT NULL, 
+          OrderID varchar(20) NOT NULL, 
+          PostalCode INTEGER NOT NULL,
+          ProductID varchar(20) NOT NULL,
+          FOREIGN KEY (CustomerID) REFERENCES customerInfo(CustomerID),
+          FOREIGN KEY (OrderID) REFERENCES shippingInfo(OrderID),
+          FOREIGN KEY (PostalCode) REFERENCES locationInfo(PostalCode),
+          FOREIGN KEY (ProductID) REFERENCES productInfo(ProductID))")
+
+dbExecute(midterm3, "INSERT INTO primaryTable (RowID, Sales, CustomerID, OrderID, PostalCode, ProductID)
+  SELECT RowID, Sales, CustomerID, OrderID, PostalCode, ProductID
+  FROM train")
+
+# Calculating the number of cells in each of the divided datasets
+num_rows_loc <- dbGetQuery(midterm3, "SELECT COUNT(*) FROM location")
+num_cols_loc <- length(dbListFields(midterm3, "location"))
+num_cells_loc <- num_rows_loc[1,1] * num_cols_loc
+
+num_rows_CI <- dbGetQuery(midterm3, "SELECT COUNT(*) FROM customerInfo")
+num_cols_CI <- length(dbListFields(midterm3, "customerInfo"))
+num_cells_CI <- num_rows_CI[1,1] * num_cols_CI
+
+num_rows_SI <- dbGetQuery(midterm3, "SELECT COUNT(*) FROM shippingInfo")
+num_cols_SI <- length(dbListFields(midterm3, "shippingInfo"))
+num_cells_SI <- num_rows_SI[1,1] * num_cols_SI
+
+num_rows_PI <- dbGetQuery(midterm3, "SELECT COUNT(*) FROM productInfo")
+num_cols_PI <- length(dbListFields(midterm3, "productInfo"))
+num_cells_PI <- num_rows_PI[1,1] * num_cols_PI
+
+num_rows_PT <- dbGetQuery(midterm3, "SELECT COUNT(*) FROM primaryTable")
+num_cols_PT <- length(dbListFields(midterm3, "primaryTable"))
+num_cells_PT <- num_rows_PT[1,1] * num_cols_PT
+
+num_cells_loc + num_cells_CI + num_cells_SI + num_cells_PI + num_cells_PT
+
+dbDisconnect(midterm3)
+```
